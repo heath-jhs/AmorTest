@@ -1,7 +1,6 @@
-// src/App.jsx — FINAL FLOW: AUTH → ONBOARDING → MAIN
+// src/App.jsx — FINAL: AUTH → ONBOARDING → MAIN
 import { useState, useEffect } from 'react';
-import { supabase } from './lib/supabaseClient.js';
-import OnboardingFlow from './components/OnboardingFlow.jsx';
+import { supabase } from './lib/sup OnboardingFlow from './components/OnboardingFlow.jsx';
 import DailyCheckIn from './components/DailyCheckIn.jsx';
 import SyncResult from './components/SyncResult.jsx';
 import PrivateChannel from './components/PrivateChannel.jsx';
@@ -11,14 +10,15 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [partner, setPartner] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
+    // Listen for changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -28,40 +28,29 @@ export default function App() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchOrCreateProfile();
+      fetchProfile();
     }
   }, [user?.id]);
 
-  const fetchOrCreateProfile = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*, partner:partner_id(display_name)')
-        .eq('id', user.id)
-        .maybeSingle();
+  const fetchProfile = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*, partner:partner_id(display_name)')
+      .eq('id', user.id)
+      .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (!data) {
-        // Profile doesn't exist → stay on onboarding
-        setProfile(null);
-      } else {
-        setProfile(data);
-        setPartner(data.partner);
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load profile.');
-    } finally {
-      setLoading(false);
+    if (error && error.code !== 'PGRST116') {
+      console.error(error);
+      return;
     }
+
+    setProfile(data || null);
   };
 
   const handleOnboardingComplete = () => {
-    fetchOrCreateProfile();
+    fetchProfile();
   };
 
-  // LOADING
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-blue-50">
@@ -70,21 +59,7 @@ export default function App() {
     );
   }
 
-  // ERROR
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="bg-white p-8 rounded-xl shadow-lg text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button onClick={() => window.location.reload()} className="bg-pink-600 text-white px-6 py-3 rounded-lg">
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // NO USER → SHOW AUTH
+  // NO USER → AUTH
   if (!user) {
     return <Auth />;
   }
@@ -94,12 +69,12 @@ export default function App() {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
-  // USER + PROFILE + ONBOARDING COMPLETE → MAIN APP
+  // PROFILE EXISTS BUT NOT ONBOARDED → ONBOARDING
   if (!profile.onboarding_completed) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
-  // MAIN APP
+  // FULLY ONBOARDED → MAIN APP
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50 p-6">
       <header className="text-center mb-8">
@@ -120,7 +95,6 @@ export default function App() {
   );
 }
 
-// AUTH COMPONENT
 function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -131,7 +105,7 @@ function Auth() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('Check your email for confirmation link!');
+        alert('Check your email for confirmation!');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
