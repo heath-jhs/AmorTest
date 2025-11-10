@@ -1,7 +1,7 @@
-// src/App.jsx — FINAL WITH AUTO-PROFILE
+// src/App.jsx — FINAL, BUILD-PASSING
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient.js';
-import OnboardingFlow from './components/OnboardingFlow.jsx.jsx';
+import OnboardingFlow from './components/OnboardingFlow.jsx'; // ← FIXED: removed .jsx
 import DailyCheckIn from './components/DailyCheckIn.jsx';
 import SyncResult from './components/SyncResult.jsx';
 import PrivateChannel from './components/PrivateChannel.jsx';
@@ -38,12 +38,11 @@ export default function App() {
         .from('profiles')
         .select('*, partner:partner_id(display_name)')
         .eq('id', user.id)
-        .maybeSingle(); // ← KEY: doesn't error if no row
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no row
+      if (error && error.code !== 'PGRST116') throw error;
 
       if (!data) {
-        // Auto-create minimal profile
         const { data: newProfile } = await supabase
           .from('profiles')
           .insert({ id: user.id, display_name: 'You' })
@@ -112,7 +111,7 @@ export default function App() {
 
 function Auth() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useSelect('');
+  const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
 
   const handleAuth = async () => {
