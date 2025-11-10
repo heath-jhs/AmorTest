@@ -1,6 +1,6 @@
-// src/App.jsx — REPLACE THE ENTIRE FILE
+// src/App.jsx — FINAL WHITE-SCREEN-PROOF
 import { useState, useEffect } from 'react';
-import { supabase, getMyProfile, getPartnerProfile } from './lib/supabaseClient.js';
+import { supabase } from './lib/supabaseClient.js';
 import OnboardingFlow from './components/OnboardingFlow.jsx';
 import DailyCheckIn from './components/DailyCheckIn.jsx';
 import SyncResult from './components/SyncResult.jsx';
@@ -11,12 +11,12 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [partner, setPartner] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const { data: { session } } = supabase.auth.getSession();
+    setUser(session?.user ?? null);
+    setLoading(false);
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -32,34 +32,68 @@ export default function App() {
   }, [user]);
 
   const fetchProfile = async () => {
-    const p = await getMyProfile();
-    setProfile(p);
-    if (p?.partner_id) {
-      const partnerData = await getPartnerProfile();
-      setPartner(partnerData);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*, partner:partner_id(display_name)')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+      setPartner(data.partner);
+    } catch (err) {
+      console.error('Profile fetch error:', err);
+      setError('Failed to load profile. Please refresh.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleOnboardingComplete = () => {
-    fetchProfile(); // Refetch instead of reload
+    fetchProfile();
   };
 
+  // ——— LOADING ———
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-blue-50">
-        <p className="text-xl">Loading AMORTEST...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-pink-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-lg">Loading AMORTEST...</p>
+        </div>
       </div>
     );
   }
 
+  // ——— ERROR ———
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-blue-50 p-6">
+        <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-md">
+          <p className="text-red-600 font-medium mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-pink-600 text-white px-6 py-3 rounded-lg font-medium"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ——— NO USER ———
   if (!user) {
     return <Auth />;
   }
 
+  // ——— ONBOARDING ———
   if (!profile?.onboarding_completed) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
+  // ——— MAIN APP ———
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50 p-4">
       <header className="text-center mb-6">
@@ -84,6 +118,7 @@ export default function App() {
   );
 }
 
+// ——— AUTH COMPONENT (unchanged) ———
 function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
