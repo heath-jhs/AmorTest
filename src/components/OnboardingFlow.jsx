@@ -1,4 +1,4 @@
-// src/components/OnboardingFlow.jsx — FINAL
+// src/components/OnboardingFlow.jsx
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 
@@ -76,8 +76,6 @@ export default function OnboardingFlow({ onComplete }) {
     setInviteCode(code);
     setStep('invite');
     setLoading(false);
-
-    // CRITICAL: CALL onComplete
     onComplete(newProfile);
   };
 
@@ -93,7 +91,7 @@ export default function OnboardingFlow({ onComplete }) {
             placeholder="Your display name"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-4 mb-4 text-lg focus:ring-2 focus:ring-p-500 focus:outline-none transition"
+            className="w-full border border-gray-300 rounded-lg p-4 mb-4 text-lg focus:ring-2 focus:ring-pink-500 focus:outline-none transition"
           />
 
           <input
@@ -193,7 +191,7 @@ export default function OnboardingFlow({ onComplete }) {
           </div>
 
           <button
-            onClick={() => onComplete()}
+            onClick={onComplete}
             className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition"
           >
             Go to Daily Check-In
