@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx — FINAL
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient.js';
 import OnboardingFlow from './components/OnboardingFlow.jsx';
@@ -46,16 +46,8 @@ export default function App() {
     setProfile(data || null);
   };
 
-  const handleOnboardingComplete = (newProfile) => {
-    setProfile(newProfile);
-    if (newProfile.partner_id) {
-      supabase
-        .from('profiles')
-        .select('display_name')
-        .eq('id', newProfile.partner_id)
-        .single()
-        .then(({ data }) => setPartner(data));
-    }
+  const handleOnboardingComplete = () => {
+    fetchProfile(); // ← REFETCH PROFILE
   };
 
   if (loading) {
