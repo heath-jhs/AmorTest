@@ -1,4 +1,4 @@
-// src/components/OnboardingFlow.jsx
+// src/components/OnboardingFlow.jsx — FINAL
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 
@@ -68,7 +68,7 @@ export default function OnboardingFlow({ onComplete }) {
 
     if (error) {
       console.error('Save error:', error);
-      alert('Save failed. Try again.');
+      alert(`Save failed: ${error.message}`);
       setLoading(false);
       return;
     }
@@ -76,7 +76,6 @@ export default function OnboardingFlow({ onComplete }) {
     setInviteCode(code);
     setStep('invite');
     setLoading(false);
-
     onComplete(newProfile);
   };
 
