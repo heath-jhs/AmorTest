@@ -18,6 +18,7 @@ export default function OnboardingFlow({ onComplete }) {
   const [name, setName] = useState('');
   const [partnerCode, setPartnerCode] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleAnswer = (id, value) => {
     setAnswers(prev => ({ ...prev, [id]: value }));
@@ -25,16 +26,14 @@ export default function OnboardingFlow({ onComplete }) {
   };
 
   const finalize = async () => {
+    setLoading(true);
     const weights = {};
     Object.keys(answers).forEach(k => {
-      weights[`${k}_weight`] = answers[k] / 5; // Normalize to 0–1
+      weights[`${k}_weight`] = answers[k] / 5;
     });
 
     const { data: { user } } = await supabase.auth.getUser();
-
-    // Generate invite code
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setInviteCode(code);
 
     let partnerId = null;
     if (partnerCode) {
@@ -55,8 +54,9 @@ export default function OnboardingFlow({ onComplete }) {
       ...weights
     });
 
-    // Show invite code
+    setInviteCode(code);
     setStep('invite');
+    setLoading(false);
   };
 
   // ——— STEP 0: Name + Partner Code ———
@@ -83,7 +83,8 @@ export default function OnboardingFlow({ onComplete }) {
 
           <button
             onClick={() => name.trim() && setStep(1)}
-            className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition shadow-md"
+            disabled={!name.trim()}
+            className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition shadow-md disabled:opacity-50"
           >
             Start Onboarding
           </button>
@@ -95,6 +96,8 @@ export default function OnboardingFlow({ onComplete }) {
   // ——— STEP 1–7: Questions ———
   if (step <= questions.length) {
     const q = questions[step - 1];
+    const allAnswered = Object.keys(answers).length === questions.length;
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50 p-6 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-2xl">
@@ -130,6 +133,16 @@ export default function OnboardingFlow({ onComplete }) {
             <span>Strongly Disagree</span>
             <span>Strongly Agree</span>
           </div>
+
+          {allAnswered && step === questions.length && (
+            <button
+              onClick={finalize}
+              disabled={loading}
+              className="mt-10 w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition shadow-md disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : 'Complete Onboarding'}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -143,7 +156,7 @@ export default function OnboardingFlow({ onComplete }) {
           <h2 className="text-2xl font-bold mb-4">You're all set!</h2>
           <p className="text-gray-600 mb-6">Share this code with your partner:</p>
 
-          <div className="bg-gray-100 rounded-lg p-4 font-mono text-2xl tracking-widest mb-6">
+          <div className="bg-gray-100 rounded-lg p-4 font-mono text-2xl tracking-widest mb-6 select-all">
             {inviteCode}
           </div>
 
@@ -151,7 +164,7 @@ export default function OnboardingFlow({ onComplete }) {
             onClick={onComplete}
             className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition"
           >
-            Begin Daily Check-In
+            Go to Daily Check-In
           </button>
         </div>
       </div>
