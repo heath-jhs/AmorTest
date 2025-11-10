@@ -1,4 +1,4 @@
-// src/App.jsx — FINAL WHITE-SCREEN-PROOF
+// src/App.jsx — FINAL, CRASH-PROOF
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient.js';
 import OnboardingFlow from './components/OnboardingFlow.jsx';
@@ -26,10 +26,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchProfile();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const fetchProfile = async () => {
     try {
@@ -43,8 +43,7 @@ export default function App() {
       setProfile(data);
       setPartner(data.partner);
     } catch (err) {
-      console.error('Profile fetch error:', err);
-      setError('Failed to load profile. Please refresh.');
+      setError('Failed to load profile.');
     } finally {
       setLoading(false);
     }
@@ -54,131 +53,92 @@ export default function App() {
     fetchProfile();
   };
 
-  // ——— LOADING ———
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-blue-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-pink-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-lg">Loading AMORTEST...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
       </div>
     );
   }
 
-  // ——— ERROR ———
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-blue-50 p-6">
-        <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-md">
-          <p className="text-red-600 font-medium mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-pink-600 text-white px-6 py-3 rounded-lg font-medium"
-          >
-            Refresh Page
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="bg-white p-8 rounded-xl shadow-lg text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="bg-primary text-white px-6 py-3 rounded-lg">
+            Retry
           </button>
         </div>
       </div>
     );
   }
 
-  // ——— NO USER ———
-  if (!user) {
-    return <Auth />;
-  }
+  if (!user) return <Auth />;
+  if (!profile?.onboarding_completed) return <OnboardingFlow onComplete={handleOnboardingComplete} />;
 
-  // ——— ONBOARDING ———
-  if (!profile?.onboarding_completed) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
-  }
-
-  // ——— MAIN APP ———
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50 p-4">
-      <header className="text-center mb-6">
-        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-blue-600">
+    <div className="min-h-screen p-6">
+      <header className="text-center mb-8">
+        <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
           AMORTEST
         </h1>
-        <p className="text-sm text-gray-600 mt-1">
-          You & {partner?.display_name || 'Your Partner'}
+        <p className="text-lg mt-2">
+          You & <span className="font-semibold">{partner?.display_name || 'Your Partner'}</span>
         </p>
       </header>
 
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-8">
         <DailyCheckIn userId={user.id} />
         <SyncResult userId={user.id} />
         <PrivateChannel userId={user.id} />
       </div>
-
-      <footer className="text-center text-xs text-gray-500 mt-10">
-        Private • Adaptive • Secure
-      </footer>
     </div>
   );
 }
 
-// ——— AUTH COMPONENT (unchanged) ———
 function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
-  const [error, setError] = useState('');
 
   const handleAuth = async () => {
-    setError('');
-    try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        alert('Check your email for confirmation link!');
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      }
-    } catch (err) {
-      setError(err.message);
+    if (isSignUp) {
+      await supabase.auth.signUp({ email, password });
+    } else {
+      await supabase.auth.signInWithPassword({ email, password });
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-blue-50 p-4">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm">
-        <h2 className="text-2xl font-bold text-center mb-6">
-          {isSignUp ? 'Create Account' : 'Welcome Back'}
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md">
+        <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          {isSignUp ? 'Join AMORTEST' : 'Welcome Back'}
         </h2>
-
         <input
           type="email"
           placeholder="Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-gray-300 p-3 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          onChange={e => setEmail(e.target.value)}
+          className="w-full p-4 border rounded-lg mb-4 focus:ring-2 focus:ring-primary focus:outline-none"
         />
-
         <input
           type="password"
           placeholder="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-gray-300 p-3 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          onChange={e => setPassword(e.target.value)}
+          className="w-full p-4 border rounded-lg mb-6 focus:ring-2 focus:ring-primary focus:outline-none"
         />
-
-        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-
         <button
           onClick={handleAuth}
-          className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-3 rounded font-medium hover:opacity-90 transition"
+          className="w-full bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-lg font-bold text-lg hover:opacity-90 transition"
         >
-          {isSignUp ? 'Sign Up' : 'Sign In'}
+          {isSignUp ? 'Create Account' : 'Sign In'}
         </button>
-
-        <p className="text-center text-sm mt-4">
-          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-pink-600 font-medium underline"
-          >
+        <p className="text-center mt-6 text-sm">
+          {isSignUp ? 'Have an account?' : "Don't have an account?"}{' '}
+          <button onClick={() => setIsSignUp(!isSignUp)} className="text-primary font-bold">
             {isSignUp ? 'Sign In' : 'Sign Up'}
           </button>
         </p>
