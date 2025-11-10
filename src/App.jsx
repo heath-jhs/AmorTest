@@ -1,7 +1,7 @@
-// src/App.jsx — FINAL, BUILD-PASSING
+// src/App.jsx — FINAL FLOW: AUTH → ONBOARDING → MAIN
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient.js';
-import OnboardingFlow from './components/OnboardingFlow.jsx'; // ← FIXED: removed .jsx
+import OnboardingFlow from './components/OnboardingFlow.jsx';
 import DailyCheckIn from './components/DailyCheckIn.jsx';
 import SyncResult from './components/SyncResult.jsx';
 import PrivateChannel from './components/PrivateChannel.jsx';
@@ -43,12 +43,8 @@ export default function App() {
       if (error && error.code !== 'PGRST116') throw error;
 
       if (!data) {
-        const { data: newProfile } = await supabase
-          .from('profiles')
-          .insert({ id: user.id, display_name: 'You' })
-          .select()
-          .single();
-        setProfile(newProfile);
+        // Profile doesn't exist → stay on onboarding
+        setProfile(null);
       } else {
         setProfile(data);
         setPartner(data.partner);
@@ -65,6 +61,7 @@ export default function App() {
     fetchOrCreateProfile();
   };
 
+  // LOADING
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-blue-50">
@@ -73,6 +70,7 @@ export default function App() {
     );
   }
 
+  // ERROR
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
@@ -86,9 +84,22 @@ export default function App() {
     );
   }
 
-  if (!user) return <Auth />;
-  if (!profile?.onboarding_completed) return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  // NO USER → SHOW AUTH
+  if (!user) {
+    return <Auth />;
+  }
 
+  // USER BUT NO PROFILE → ONBOARDING
+  if (!profile) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
+
+  // USER + PROFILE + ONBOARDING COMPLETE → MAIN APP
+  if (!profile.onboarding_completed) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
+
+  // MAIN APP
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50 p-6">
       <header className="text-center mb-8">
@@ -109,6 +120,7 @@ export default function App() {
   );
 }
 
+// AUTH COMPONENT
 function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -119,7 +131,7 @@ function Auth() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('Check email for confirmation!');
+        alert('Check your email for confirmation link!');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
