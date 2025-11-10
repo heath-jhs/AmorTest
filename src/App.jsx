@@ -1,6 +1,7 @@
 // src/App.jsx — FINAL: AUTH → ONBOARDING → MAIN
 import { useState, useEffect } from 'react';
-import { supabase } from './lib/sup OnboardingFlow from './components/OnboardingFlow.jsx';
+import { supabase } from './lib/supabaseClient.js';
+import OnboardingFlow from './components/OnboardingFlow.jsx';
 import DailyCheckIn from './components/DailyCheckIn.jsx';
 import SyncResult from './components/SyncResult.jsx';
 import PrivateChannel from './components/PrivateChannel.jsx';
@@ -12,13 +13,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -105,7 +104,7 @@ function Auth() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('Check your email for confirmation!');
+        alert('Check your email for confirmation link!');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
