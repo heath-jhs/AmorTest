@@ -23,7 +23,7 @@ export default function OnboardingFlow({ onComplete }) {
   const handleAnswer = (id, value) => {
     setAnswers(prev => ({ ...prev, [id]: value }));
     if (step < questions.length) {
-      setTimeout(() => setStep(prev => prev + 1), 300); // AUTO ADVANCE
+      setTimeout(() => setStep(prev => prev + 1), 300);
     }
   };
 
@@ -53,11 +53,12 @@ export default function OnboardingFlow({ onComplete }) {
       partnerId = data?.id || null;
     }
 
+    // SAVE NAME HERE
     const { data: newProfile } = await supabase
       .from('profiles')
       .upsert({
         id: user.id,
-        display_name: name,
+        display_name: name, // ← SAVED
         partner_id: partnerId,
         invite_code: code,
         onboarding_completed: true,
@@ -160,7 +161,7 @@ export default function OnboardingFlow({ onComplete }) {
             {step === questions.length && (
               <button
                 onClick={finalize}
-                disabled={loading || !currentAnswer}
+                disabled={loading}
                 className="px-8 py-3 rounded-lg font-bold bg-gradient-to-r from-pink-600 to-blue-600 text-white disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Submit'}
@@ -186,7 +187,7 @@ export default function OnboardingFlow({ onComplete }) {
 
           <button
             onClick={onComplete}
-            className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition"
+            className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 in transition"
           >
             Go to Daily Check-In
           </button>
