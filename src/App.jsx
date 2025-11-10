@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx — REPLACE THE ENTIRE FILE
 import { useState, useEffect } from 'react';
 import { supabase, getMyProfile, getPartnerProfile } from './lib/supabaseClient.js';
 import OnboardingFlow from './components/OnboardingFlow.jsx';
@@ -13,13 +13,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check auth session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -29,31 +27,39 @@ export default function App() {
 
   useEffect(() => {
     if (user) {
-      getMyProfile().then(setProfile);
-      getPartnerProfile().then(setPartner);
+      fetchProfile();
     }
   }, [user]);
 
-  // Loading state
+  const fetchProfile = async () => {
+    const p = await getMyProfile();
+    setProfile(p);
+    if (p?.partner_id) {
+      const partnerData = await getPartnerProfile();
+      setPartner(partnerData);
+    }
+  };
+
+  const handleOnboardingComplete = () => {
+    fetchProfile(); // Refetch instead of reload
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-blue-50">
         <p className="text-xl">Loading AMORTEST...</p>
       </div>
     );
   }
 
-  // Not logged in → Show Auth
   if (!user) {
     return <Auth />;
   }
 
-  // Onboarding not complete → Show Flow
   if (!profile?.onboarding_completed) {
-    return <OnboardingFlow onComplete={() => window.location.reload()} />;
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
-  // Main App: Daily Check-In + Sync + Chat
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50 p-4">
       <header className="text-center mb-6">
@@ -78,9 +84,6 @@ export default function App() {
   );
 }
 
-// ——————————————————————
-// AUTH COMPONENT
-// ——————————————————————
 function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
