@@ -22,7 +22,18 @@ export default function OnboardingFlow({ onComplete }) {
 
   const handleAnswer = (id, value) => {
     setAnswers(prev => ({ ...prev, [id]: value }));
-    setTimeout(() => setStep(prev => prev + 1), 350);
+  };
+
+  const goNext = () => {
+    if (step < questions.length) {
+      setStep(prev => prev + 1);
+    }
+  };
+
+  const goBack = () => {
+    if (step > 0) {
+      setStep(prev => prev - 1);
+    }
   };
 
   const finalize = async () => {
@@ -102,7 +113,8 @@ export default function OnboardingFlow({ onComplete }) {
   // STEP 1–7: Questions
   if (step <= questions.length) {
     const q = questions[step - 1];
-    const allAnswered = Object.keys(answers).length === questions.length;
+    const isLast = step === questions.length;
+    const currentAnswer = answers[q.id];
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50 p-6 flex items-center justify-center">
@@ -125,7 +137,7 @@ export default function OnboardingFlow({ onComplete }) {
                 key={n}
                 onClick={() => handleAnswer(q.id, n)}
                 className={`w-16 h-16 rounded-full border-2 text-lg font-semibold transition-all transform hover:scale-110
-                  ${answers[q.id] === n 
+                  ${currentAnswer === n 
                     ? 'bg-gradient-to-r from-pink-600 to-blue-600 text-white border-transparent shadow-lg scale-110' 
                     : 'bg-white border-gray-300 text-gray-700 hover:border-pink-400'
                   }`}
@@ -140,15 +152,33 @@ export default function OnboardingFlow({ onComplete }) {
             <span>Strongly Agree</span>
           </div>
 
-          {allAnswered && step === questions.length && (
+          <div className="flex justify-between mt-10">
             <button
-              onClick={finalize}
-              disabled={loading}
-              className="mt-10 w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition shadow-md disabled:opacity-50"
+              onClick={goBack}
+              disabled={step === 1}
+              className="px-6 py-3 rounded-lg font-medium bg-gray-200 text-gray-700 disabled:opacity-50"
             >
-              {loading ? 'Saving...' : 'Complete Onboarding'}
+              Back
             </button>
-          )}
+
+            {isLast ? (
+              <button
+                onClick={finalize}
+                disabled={loading || !currentAnswer}
+                className="px-8 py-3 rounded-lg font-bold bg-gradient-to-r from-pink-600 to-blue-600 text-white disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : 'Submit'}
+              </button>
+            ) : (
+              <button
+                onClick={goNext}
+                disabled={!currentAnswer}
+                className="px-8 py-3 rounded-lg font-bold bg-gradient-to-r from-pink-600 to-blue-600 text-white disabled:opacity-50"
+              >
+                Next
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -167,7 +197,7 @@ export default function OnboardingFlow({ onComplete }) {
           </div>
 
           <button
-            onClick={() => onComplete()}
+            onClick={onComplete}
             className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition"
           >
             Go to Daily Check-In
