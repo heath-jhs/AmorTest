@@ -22,11 +22,8 @@ export default function OnboardingFlow({ onComplete }) {
 
   const handleAnswer = (id, value) => {
     setAnswers(prev => ({ ...prev, [id]: value }));
-  };
-
-  const goNext = () => {
     if (step < questions.length) {
-      setStep(prev => prev + 1);
+      setTimeout(() => setStep(prev => prev + 1), 300); // AUTO ADVANCE
     }
   };
 
@@ -113,7 +110,6 @@ export default function OnboardingFlow({ onComplete }) {
   // STEP 1–7: Questions
   if (step <= questions.length) {
     const q = questions[step - 1];
-    const isLast = step === questions.length;
     const currentAnswer = answers[q.id];
 
     return (
@@ -161,21 +157,13 @@ export default function OnboardingFlow({ onComplete }) {
               Back
             </button>
 
-            {isLast ? (
+            {step === questions.length && (
               <button
                 onClick={finalize}
                 disabled={loading || !currentAnswer}
                 className="px-8 py-3 rounded-lg font-bold bg-gradient-to-r from-pink-600 to-blue-600 text-white disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Submit'}
-              </button>
-            ) : (
-              <button
-                onClick={goNext}
-                disabled={!currentAnswer}
-                className="px-8 py-3 rounded-lg font-bold bg-gradient-to-r from-pink-600 to-blue-600 text-white disabled:opacity-50"
-              >
-                Next
               </button>
             )}
           </div>
