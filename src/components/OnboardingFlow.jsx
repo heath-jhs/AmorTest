@@ -1,4 +1,4 @@
-// src/components/OnboardingFlow.jsx — FINAL
+// src/components/OnboardingFlow.jsx
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 
@@ -53,8 +53,7 @@ export default function OnboardingFlow({ onComplete }) {
       partnerId = data?.id || null;
     }
 
-    // SAVE NAME + ANSWERS
-    const { data: newProfile } = await supabase
+    const { data: newProfile, error } = await supabase
       .from('profiles')
       .upsert({
         id: user.id,
@@ -67,11 +66,18 @@ export default function OnboardingFlow({ onComplete }) {
       .select()
       .single();
 
+    if (error) {
+      console.error('Save error:', error);
+      alert('Save failed. Try again.');
+      setLoading(false);
+      return;
+    }
+
     setInviteCode(code);
     setStep('invite');
     setLoading(false);
 
-    onComplete(newProfile); // ← CRITICAL
+    onComplete(newProfile);
   };
 
   // STEP 0: Name + Partner Code
@@ -186,7 +192,7 @@ export default function OnboardingFlow({ onComplete }) {
           </div>
 
           <button
-            onClick={() => onComplete()}
+            onClick={onComplete}
             className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition"
           >
             Go to Daily Check-In
