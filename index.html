@@ -5,8 +5,22 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AMORTEST</title>
+    <!-- TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#ec4899',
+              secondary: '#3b82f6'
+            }
+          }
+        }
+      }
+    </script>
   </head>
-  <body>
+  <body class="bg-gradient-to-br from-pink-50 to-blue-50">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
