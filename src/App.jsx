@@ -1,7 +1,7 @@
-// src/App.jsx — FINAL, NO CRASH
+// src/App.jsx — FINAL WITH AUTO-PROFILE
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient.js';
-import OnboardingFlow from './components/OnboardingFlow.jsx';
+import OnboardingFlow from './components/OnboardingFlow.jsx.jsx';
 import DailyCheckIn from './components/DailyCheckIn.jsx';
 import SyncResult from './components/SyncResult.jsx';
 import PrivateChannel from './components/PrivateChannel.jsx';
@@ -14,7 +14,6 @@ export default function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // CORRECT: getSession returns { data: { session } }
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
@@ -29,21 +28,32 @@ export default function App() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchProfile();
+      fetchOrCreateProfile();
     }
   }, [user?.id]);
 
-  const fetchProfile = async () => {
+  const fetchOrCreateProfile = async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*, partner:partner_id(display_name)')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // ← KEY: doesn't error if no row
 
-      if (error) throw error;
-      setProfile(data);
-      setPartner(data.partner);
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no row
+
+      if (!data) {
+        // Auto-create minimal profile
+        const { data: newProfile } = await supabase
+          .from('profiles')
+          .insert({ id: user.id, display_name: 'You' })
+          .select()
+          .single();
+        setProfile(newProfile);
+      } else {
+        setProfile(data);
+        setPartner(data.partner);
+      }
     } catch (err) {
       console.error(err);
       setError('Failed to load profile.');
@@ -53,7 +63,7 @@ export default function App() {
   };
 
   const handleOnboardingComplete = () => {
-    fetchProfile();
+    fetchOrCreateProfile();
   };
 
   if (loading) {
@@ -77,7 +87,7 @@ export default function App() {
     );
   }
 
-  if (!user) return <AuthAuth />;
+  if (!user) return <Auth />;
   if (!profile?.onboarding_completed) return <OnboardingFlow onComplete={handleOnboardingComplete} />;
 
   return (
@@ -102,7 +112,7 @@ export default function App() {
 
 function Auth() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useSelect('');
   const [isSignUp, setIsSignUp] = useState(false);
 
   const handleAuth = async () => {
