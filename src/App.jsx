@@ -1,5 +1,94 @@
-// src/App.jsx — FINAL
-// ... (top part unchanged)
+// src/App.jsx — FINAL WITH EXPORT
+import { useState, useEffect } from 'react';
+import { supabase } from './lib/supabaseClient.js';
+import OnboardingFlow from './components/OnboardingFlow.jsx';
+import DailyCheckIn from './components/DailyCheckIn.jsx';
+import SyncResult from './components/SyncResult.jsx';
+import PrivateChannel from './components/PrivateChannel.jsx';
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [partner, setPartner] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => listener?.subscription?.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchProfile();
+    }
+  }, [user?.id]);
+
+  const fetchProfile = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*, partner:partner_id(display_name)')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error(error);
+      return;
+    }
+
+    setProfile(data || null);
+  };
+
+  const handleOnboardingComplete = () => {
+    fetchProfile();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-blue-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-pink-600 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Auth />;
+  }
+
+  if (!profile) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
+
+  if (!profile.onboarding_completed) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50 p-6">
+      <header className="text-center mb-8">
+        <h1 className="text-5xl font-bold bg-gradient-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent">
+          AMORTEST
+        </h1>
+        <p className="text-lg mt-2">
+          You & <span className="font-semibold">{partner?.display_name || 'Your Partner'}</span>
+        </p>
+      </header>
+
+      <div className="max-w-2xl mx-auto space-y-8">
+        <DailyCheckIn userId={user.id} />
+        <SyncResult userId={user.id} />
+        <PrivateChannel userId={user.id} />
+      </div>
+    </div>
+  );
+}
 
 function Auth() {
   const [email, setEmail] = useState('');
@@ -14,7 +103,7 @@ function Auth() {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setMessage('Check your email for confirmation link!');
-        setTimeout(() => setMessage(''), 5000); // Auto-clear
+        setTimeout(() => setMessage(''), 5000);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
