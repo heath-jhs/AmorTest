@@ -1,4 +1,4 @@
-// src/components/OnboardingFlow.jsx — FINAL & VALID
+// src/components/OnboardingFlow.jsx
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 
@@ -167,7 +167,7 @@ export default function OnboardingFlow({ onComplete }) {
           </div>
 
           <button
-            onClick={onComplete}
+            onClick={() => onComplete()}
             className="w-full bg-gradient-to-r from-pink-600 to-blue-600 text-white p-4 rounded-lg font-semibold text-lg hover:opacity-90 transition"
           >
             Go to Daily Check-In
